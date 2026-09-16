@@ -1,0 +1,377 @@
+[
+  {
+    "epoch": 1,
+    "phase": 1,
+    "train_loss": 1.260240991117638,
+    "train_acc": 0.40351257588898526,
+    "val_loss": 1.542664205053901,
+    "val_acc": 0.5408560311284046,
+    "per_class": {
+      "No DR": 0.85,
+      "Mild": 0.596,
+      "Moderate": 0.0,
+      "Severe": 0.808,
+      "Proliferative DR": 0.238
+    }
+  },
+  {
+    "epoch": 2,
+    "phase": 1,
+    "train_loss": 1.2031288552263562,
+    "train_acc": 0.44102341717259325,
+    "val_loss": 1.48757421552903,
+    "val_acc": 0.5680933852140078,
+    "per_class": {
+      "No DR": 0.894,
+      "Mild": 0.692,
+      "Moderate": 0.021,
+      "Severe": 0.769,
+      "Proliferative DR": 0.143
+    }
+  },
+  {
+    "epoch": 3,
+    "phase": 1,
+    "train_loss": 1.1478513246604078,
+    "train_acc": 0.47398091934084996,
+    "val_loss": 1.4993241371347747,
+    "val_acc": 0.5778210116731517,
+    "per_class": {
+      "No DR": 0.886,
+      "Mild": 0.654,
+      "Moderate": 0.036,
+      "Severe": 0.808,
+      "Proliferative DR": 0.286
+    }
+  },
+  {
+    "epoch": 4,
+    "phase": 1,
+    "train_loss": 1.1579268539044925,
+    "train_acc": 0.4551170858629662,
+    "val_loss": 1.4442014740598805,
+    "val_acc": 0.5875486381322957,
+    "per_class": {
+      "No DR": 0.917,
+      "Mild": 0.712,
+      "Moderate": 0.036,
+      "Severe": 0.731,
+      "Proliferative DR": 0.19
+    }
+  },
+  {
+    "epoch": 5,
+    "phase": 1,
+    "train_loss": 1.1314138797501947,
+    "train_acc": 0.48178664353859496,
+    "val_loss": 1.4423193695016407,
+    "val_acc": 0.5992217898832685,
+    "per_class": {
+      "No DR": 0.917,
+      "Mild": 0.712,
+      "Moderate": 0.029,
+      "Severe": 0.808,
+      "Proliferative DR": 0.31
+    }
+  },
+  {
+    "epoch": 6,
+    "phase": 1,
+    "train_loss": 1.0950793978553799,
+    "train_acc": 0.4991326973113617,
+    "val_loss": 1.4449345416132113,
+    "val_acc": 0.622568093385214,
+    "per_class": {
+      "No DR": 0.941,
+      "Mild": 0.712,
+      "Moderate": 0.057,
+      "Severe": 0.846,
+      "Proliferative DR": 0.333
+    }
+  },
+  {
+    "epoch": 7,
+    "phase": 1,
+    "train_loss": 1.1013107354601672,
+    "train_acc": 0.4986990459670425,
+    "val_loss": 1.4431241356445195,
+    "val_acc": 0.622568093385214,
+    "per_class": {
+      "No DR": 0.945,
+      "Mild": 0.75,
+      "Moderate": 0.029,
+      "Severe": 0.769,
+      "Proliferative DR": 0.405
+    }
+  },
+  {
+    "epoch": 8,
+    "phase": 1,
+    "train_loss": 1.1061185029725458,
+    "train_acc": 0.4976149176062446,
+    "val_loss": 1.4270131657559584,
+    "val_acc": 0.5875486381322957,
+    "per_class": {
+      "No DR": 0.89,
+      "Mild": 0.769,
+      "Moderate": 0.029,
+      "Severe": 0.769,
+      "Proliferative DR": 0.286
+    }
+  },
+  {
+    "epoch": 9,
+    "phase": 2,
+    "train_loss": 1.037724180523458,
+    "train_acc": 0.5359930615784909,
+    "val_loss": 1.3756894977176235,
+    "val_acc": 0.6167315175097277,
+    "per_class": {
+      "No DR": 0.866,
+      "Mild": 0.885,
+      "Moderate": 0.071,
+      "Severe": 0.808,
+      "Proliferative DR": 0.476
+    }
+  },
+  {
+    "epoch": 10,
+    "phase": 2,
+    "train_loss": 0.9320331494495958,
+    "train_acc": 0.5891153512575888,
+    "val_loss": 1.383379923230479,
+    "val_acc": 0.669260700389105,
+    "per_class": {
+      "No DR": 0.972,
+      "Mild": 0.712,
+      "Moderate": 0.136,
+      "Severe": 0.885,
+      "Proliferative DR": 0.429
+    }
+  },
+  {
+    "epoch": 11,
+    "phase": 2,
+    "train_loss": 0.85443993599024,
+    "train_acc": 0.650043365134432,
+    "val_loss": 1.3400514747382137,
+    "val_acc": 0.6478599221789884,
+    "per_class": {
+      "No DR": 0.874,
+      "Mild": 0.827,
+      "Moderate": 0.186,
+      "Severe": 0.885,
+      "Proliferative DR": 0.452
+    }
+  },
+  {
+    "epoch": 12,
+    "phase": 2,
+    "train_loss": 0.79018908072221,
+    "train_acc": 0.6856027753686036,
+    "val_loss": 1.291153458305834,
+    "val_acc": 0.6867704280155642,
+    "per_class": {
+      "No DR": 0.953,
+      "Mild": 0.846,
+      "Moderate": 0.186,
+      "Severe": 0.885,
+      "Proliferative DR": 0.429
+    }
+  },
+  {
+    "epoch": 13,
+    "phase": 2,
+    "train_loss": 0.7386892713987611,
+    "train_acc": 0.7246313963573288,
+    "val_loss": 1.3084664034008515,
+    "val_acc": 0.7023346303501945,
+    "per_class": {
+      "No DR": 0.953,
+      "Mild": 0.808,
+      "Moderate": 0.214,
+      "Severe": 0.885,
+      "Proliferative DR": 0.571
+    }
+  },
+  {
+    "epoch": 14,
+    "phase": 2,
+    "train_loss": 0.6932107599941627,
+    "train_acc": 0.7523850823937555,
+    "val_loss": 1.3364795233025162,
+    "val_acc": 0.7120622568093385,
+    "per_class": {
+      "No DR": 0.941,
+      "Mild": 0.712,
+      "Moderate": 0.3,
+      "Severe": 0.923,
+      "Proliferative DR": 0.571
+    }
+  },
+  {
+    "epoch": 15,
+    "phase": 2,
+    "train_loss": 0.6442176495442056,
+    "train_acc": 0.782307025151778,
+    "val_loss": 1.3228018715223913,
+    "val_acc": 0.7062256809338522,
+    "per_class": {
+      "No DR": 0.965,
+      "Mild": 0.769,
+      "Moderate": 0.214,
+      "Severe": 0.923,
+      "Proliferative DR": 0.571
+    }
+  },
+  {
+    "epoch": 16,
+    "phase": 2,
+    "train_loss": 0.6140050696789029,
+    "train_acc": 0.8085429314830876,
+    "val_loss": 1.3715007022197145,
+    "val_acc": 0.7159533073929961,
+    "per_class": {
+      "No DR": 0.941,
+      "Mild": 0.846,
+      "Moderate": 0.279,
+      "Severe": 0.885,
+      "Proliferative DR": 0.548
+    }
+  },
+  {
+    "epoch": 17,
+    "phase": 2,
+    "train_loss": 0.6024464654695026,
+    "train_acc": 0.8156981786643539,
+    "val_loss": 1.2830372455055148,
+    "val_acc": 0.7470817120622568,
+    "per_class": {
+      "No DR": 0.969,
+      "Mild": 0.827,
+      "Moderate": 0.386,
+      "Severe": 0.654,
+      "Proliferative DR": 0.571
+    }
+  },
+  {
+    "epoch": 18,
+    "phase": 2,
+    "train_loss": 0.5776869743571319,
+    "train_acc": 0.8339115351257589,
+    "val_loss": 1.2924206099157667,
+    "val_acc": 0.7840466926070039,
+    "per_class": {
+      "No DR": 0.969,
+      "Mild": 0.75,
+      "Moderate": 0.507,
+      "Severe": 0.885,
+      "Proliferative DR": 0.571
+    }
+  },
+  {
+    "epoch": 19,
+    "phase": 2,
+    "train_loss": 0.544446797858914,
+    "train_acc": 0.8549436253252385,
+    "val_loss": 1.3104592932801302,
+    "val_acc": 0.7354085603112841,
+    "per_class": {
+      "No DR": 0.945,
+      "Mild": 0.769,
+      "Moderate": 0.343,
+      "Severe": 0.885,
+      "Proliferative DR": 0.643
+    }
+  },
+  {
+    "epoch": 20,
+    "phase": 2,
+    "train_loss": 0.5361599065848051,
+    "train_acc": 0.8636166522116219,
+    "val_loss": 1.3392396140191343,
+    "val_acc": 0.7490272373540856,
+    "per_class": {
+      "No DR": 0.925,
+      "Mild": 0.731,
+      "Moderate": 0.464,
+      "Severe": 0.769,
+      "Proliferative DR": 0.643
+    }
+  },
+  {
+    "epoch": 21,
+    "phase": 2,
+    "train_loss": 0.518699623146785,
+    "train_acc": 0.8785776235906332,
+    "val_loss": 1.313211986526905,
+    "val_acc": 0.7782101167315175,
+    "per_class": {
+      "No DR": 0.917,
+      "Mild": 0.75,
+      "Moderate": 0.586,
+      "Severe": 0.808,
+      "Proliferative DR": 0.595
+    }
+  },
+  {
+    "epoch": 22,
+    "phase": 2,
+    "train_loss": 0.5018079672703408,
+    "train_acc": 0.879661751951431,
+    "val_loss": 1.2824100835777905,
+    "val_acc": 0.7840466926070039,
+    "per_class": {
+      "No DR": 0.949,
+      "Mild": 0.769,
+      "Moderate": 0.507,
+      "Severe": 0.885,
+      "Proliferative DR": 0.667
+    }
+  },
+  {
+    "epoch": 23,
+    "phase": 2,
+    "train_loss": 0.5124429832669,
+    "train_acc": 0.8779271465741544,
+    "val_loss": 1.276376026613703,
+    "val_acc": 0.8015564202334631,
+    "per_class": {
+      "No DR": 0.957,
+      "Mild": 0.808,
+      "Moderate": 0.571,
+      "Severe": 0.769,
+      "Proliferative DR": 0.643
+    }
+  },
+  {
+    "epoch": 24,
+    "phase": 2,
+    "train_loss": 0.5141562452961441,
+    "train_acc": 0.8768430182133564,
+    "val_loss": 1.2953482216898105,
+    "val_acc": 0.7723735408560312,
+    "per_class": {
+      "No DR": 0.957,
+      "Mild": 0.788,
+      "Moderate": 0.464,
+      "Severe": 0.846,
+      "Proliferative DR": 0.619
+    }
+  },
+  {
+    "epoch": 25,
+    "phase": 2,
+    "train_loss": 0.5064991982161017,
+    "train_acc": 0.8787944492627927,
+    "val_loss": 1.2784946976004872,
+    "val_acc": 0.7898832684824902,
+    "per_class": {
+      "No DR": 0.953,
+      "Mild": 0.769,
+      "Moderate": 0.543,
+      "Severe": 0.846,
+      "Proliferative DR": 0.619
+    }
+  }
+]
