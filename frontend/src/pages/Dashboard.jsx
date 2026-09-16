@@ -5,7 +5,7 @@ import { getPatients } from '../api/patientsApi';
 export function Dashboard() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCohort() {

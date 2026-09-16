@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPatients } from '../api/patientsApi';
-import { formatConfidence } from '../utils/formatters';
 
 export function DiagnosticResults() {
   const { scanId } = useParams();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const _navigate = useNavigate();
+  const [_loading, setLoading] = useState(true);
   const [patient, setPatient] = useState(null);
   const [currentScan, setCurrentScan] = useState(null);
   const [viewMode, setViewMode] = useState('side-by-side');
