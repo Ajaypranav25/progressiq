@@ -46,3 +46,12 @@ Thumbs.db
 # Runtime generated evidence heatmaps
 backend/static/evidence/
 
+# Media storage - ignore generated images, preserve directory structure
+media/scans/*
+!media/scans/.gitkeep
+media/evidence/*
+!media/evidence/.gitkeep
+media/comparisons/*
+!media/comparisons/.gitkeep
+media/temp/*
+!media/temp/.gitkeep
