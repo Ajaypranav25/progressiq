@@ -43,6 +43,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Runtime generated evidence heatmaps
+backend/static/evidence/
+
 # Media storage - ignore generated images, preserve directory structure
 media/scans/*
 !media/scans/.gitkeep
