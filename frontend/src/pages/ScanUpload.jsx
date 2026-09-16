@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getPatients, addScanToPatient } from '../api/patientsApi';
-import { diagnoseScan } from '../api/diagnosticApi';
 import { SAMPLE_FUNDUS_SCANS } from '../api/mockData';
 
 export function ScanUpload() {

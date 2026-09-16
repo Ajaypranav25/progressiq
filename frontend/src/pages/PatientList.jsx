@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPatients, createPatient } from '../api/patientsApi';
-import { formatDate } from '../utils/formatters';
+
 
 export function PatientList() {
   const navigate = useNavigate();
