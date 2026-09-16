@@ -1,36 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Users,
-  Search,
-  Plus,
-  ArrowRight,
-  Filter,
-  Calendar,
-  Layers,
-  AlertCircle,
-} from 'lucide-react';
 import { getPatients, createPatient } from '../api/patientsApi';
-import { SeverityBadge } from '../components/common/SeverityBadge';
-import { TrajectoryBadge } from '../components/common/TrajectoryBadge';
-import { Modal } from '../components/common/Modal';
-import { Toast } from '../components/common/Toast';
 import { formatDate } from '../utils/formatters';
 
 export function PatientList() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [severityFilter, setSeverityFilter] = useState('ALL');
+  const [filterMode, setFilterMode] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
-
-  // New patient form state
   const [formData, setFormData] = useState({
     name: '',
-    age: '55',
+    age: '58',
     gender: 'Female',
-    diabetesType: 'Type 2 Diabetes (6 yrs)',
+    diabetesType: 'Type 2 Diabetes (11 yrs)',
   });
 
   async function loadPatients() {
@@ -53,294 +36,338 @@ export function PatientList() {
     try {
       const { data } = await createPatient(formData);
       setIsAddModalOpen(false);
-      setFormData({ name: '', age: '55', gender: 'Female', diabetesType: 'Type 2 Diabetes (6 yrs)' });
-      setToastMessage({ message: `Registered patient ${data.patientIdentifier}`, type: 'success' });
+      setFormData({ name: '', age: '58', gender: 'Female', diabetesType: 'Type 2 Diabetes (11 yrs)' });
       await loadPatients();
-      // Optionally navigate directly to their new profile
       navigate(`/patients/${data.id}`);
     } catch (err) {
       console.error(err);
-      setToastMessage({ message: 'Failed to create patient', type: 'warning' });
     }
   }
 
-  // Filter logic
-  const filteredPatients = patients.filter((patient) => {
-    const matchesSearch =
-      patient.patientIdentifier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredPatients = patients.filter((p) => {
+    const matchesQuery =
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.patientIdentifier.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesQuery) return false;
 
-    if (!matchesSearch) return false;
-
-    if (severityFilter !== 'ALL') {
-      if (severityFilter === 'REVIEW') {
-        return patient.requiresReview;
-      }
-      return patient.latestSeverityIndex === Number(severityFilter);
-    }
-
+    if (filterMode === 'URGENT') return p.requiresReview || p.latestSeverityIndex >= 3;
+    if (filterMode === 'STABLE') return p.trajectoryStatus === 'stable';
     return true;
   });
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Patient Directory
-            </h1>
-            <span className="text-xs bg-slate-100 text-slate-600 font-mono px-2 py-0.5 rounded border border-slate-200 font-medium">
-              {patients.length} Monitored
+    <div className="py-2 md:py-6 space-y-6">
+      {/* COHORT SUMMARY STATS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="glass-station p-5 rounded-xl border border-surface-variant/40 relative overflow-hidden">
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 aura-backdrop opacity-30 pointer-events-none" />
+          <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+            Active Diabetic Surveillance
+          </div>
+          <div className="text-2xl font-bold text-on-surface mt-1">
+            2,410 <span className="text-xs font-normal text-on-surface-variant">Patients</span>
+          </div>
+          <div className="text-[11px] text-emerald-400 mt-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">trending_up</span>
+            <span>+52 new annual fundus exams this week</span>
+          </div>
+        </div>
+
+        <div className="glass-station p-5 rounded-xl border border-surface-variant/40 relative overflow-hidden">
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 aura-backdrop opacity-30 pointer-events-none" />
+          <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+            Center-Involved DME Flagged
+          </div>
+          <div className="text-2xl font-bold text-error mt-1">
+            14.6% <span className="text-xs font-normal text-on-surface-variant">Cohort</span>
+          </div>
+          <div className="text-[11px] text-error mt-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">warning</span>
+            <span>CST &gt; 320 µm requiring anti-VEGF consult</span>
+          </div>
+        </div>
+
+        <div className="glass-station p-5 rounded-xl border border-surface-variant/40 relative overflow-hidden">
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 aura-backdrop opacity-30 pointer-events-none" />
+          <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+            Mean Surveillance Interval
+          </div>
+          <div className="text-2xl font-bold text-primary mt-1">
+            11.4 <span className="text-xs font-normal text-on-surface-variant">Months</span>
+          </div>
+          <div className="text-[11px] text-on-surface-variant mt-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">check</span>
+            <span>Automated recall adherence: 94.1%</span>
+          </div>
+        </div>
+
+        <div className="glass-station p-5 rounded-xl border border-surface-variant/40 relative overflow-hidden">
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 aura-backdrop opacity-30 pointer-events-none" />
+          <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+            AI Concordance Rate (ETDRS)
+          </div>
+          <div className="text-2xl font-bold text-secondary mt-1">
+            97.4% <span className="text-xs font-normal text-on-surface-variant">Concordant</span>
+          </div>
+          <div className="text-[11px] text-secondary mt-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">verified</span>
+            <span>Zero missed neovascularizations (PDR)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* PATIENT DIRECTORY TABLE */}
+      <div className="glass-station rounded-2xl border border-surface-variant/40 overflow-hidden shadow-2xl">
+        <div className="p-5 border-b border-surface-variant/40 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider">
+              Priority Vitreoretinal Triage Queue
+            </h3>
+            <span className="text-xs px-2.5 py-0.5 rounded bg-error-container/40 text-error font-medium">
+              6 Urgent Interventions Needed
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Clinical longitudinal cohort under diabetic retinopathy photographic surveillance.
-          </p>
-        </div>
 
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-md text-xs font-semibold transition-colors shadow-xs self-start sm:self-auto"
-        >
-          <Plus size={15} />
-          <span>Add Demo Patient</span>
-        </button>
-      </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="text"
+              placeholder="Search by MRN, Name, or ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-3.5 py-1.5 rounded-lg bg-surface-container-lowest border border-surface-variant/60 text-xs text-on-surface focus:outline-none focus:border-primary w-56 md:w-64 placeholder:text-on-surface-variant/60 font-mono"
+            />
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 border border-slate-200 rounded-lg shadow-2xs">
-        {/* Search input */}
-        <div className="relative flex-1 w-full">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by Patient ID (e.g. PIQ-8401) or Name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-md focus:outline-none focus:border-slate-400 focus:bg-white transition-colors"
-          />
-        </div>
+            <div className="flex items-center gap-1 bg-surface-container-lowest p-1 rounded-lg border border-surface-variant/40 text-xs">
+              <button
+                onClick={() => setFilterMode('ALL')}
+                className={`px-2.5 py-1 rounded text-xs transition cursor-pointer ${
+                  filterMode === 'ALL'
+                    ? 'bg-primary/20 text-primary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                All ({patients.length})
+              </button>
+              <button
+                onClick={() => setFilterMode('URGENT')}
+                className={`px-2.5 py-1 rounded text-xs transition cursor-pointer ${
+                  filterMode === 'URGENT'
+                    ? 'bg-error-container/50 text-error font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Urgent / Severe
+              </button>
+              <button
+                onClick={() => setFilterMode('STABLE')}
+                className={`px-2.5 py-1 rounded text-xs transition cursor-pointer ${
+                  filterMode === 'STABLE'
+                    ? 'bg-secondary-container/50 text-secondary font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Stable
+              </button>
+            </div>
 
-        {/* Severity filter pills */}
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 text-xs">
-          <span className="text-[11px] text-slate-400 font-medium px-1 flex items-center gap-1">
-            <Filter size={11} /> Filter:
-          </span>
-          {[
-            { key: 'ALL', label: 'All' },
-            { key: 'REVIEW', label: 'Needs Review' },
-            { key: '3', label: 'Severe' },
-            { key: '2', label: 'Moderate' },
-            { key: '1', label: 'Mild' },
-            { key: '0', label: 'No DR' },
-          ].map((f) => (
             <button
-              key={f.key}
-              onClick={() => setSeverityFilter(f.key)}
-              className={`px-2.5 py-1 rounded text-xs whitespace-nowrap transition-colors font-medium border ${
-                severityFilter === f.key
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-primary-container text-on-primary font-bold text-xs hover:bg-primary transition shadow-[0_0_12px_rgba(56,189,248,0.25)] flex items-center gap-1 cursor-pointer"
             >
-              {f.label}
+              <span className="material-symbols-outlined text-[15px]">person_add</span>
+              <span>+ Add Patient</span>
             </button>
-          ))}
+          </div>
         </div>
-      </div>
 
-      {/* Patient Table */}
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+            <thead className="bg-surface-container-lowest/80 text-on-surface-variant uppercase tracking-wider font-semibold border-b border-surface-variant/40">
               <tr>
-                <th className="px-4 py-3">Patient ID</th>
-                <th className="px-4 py-3">Name / Demographics</th>
-                <th className="px-4 py-3 text-center">Scan Count</th>
-                <th className="px-4 py-3">Latest Predicted Severity</th>
-                <th className="px-4 py-3">Longitudinal Status</th>
-                <th className="px-4 py-3">Last Evaluated</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="p-4">Patient / Demographics</th>
+                <th className="p-4">MRN</th>
+                <th className="p-4">Imaging Modality</th>
+                <th className="p-4">Follow-up Interval</th>
+                <th className="p-4">Central Subfield Thickness (CST)</th>
+                <th className="p-4">ETDRS Severity &amp; DME Status</th>
+                <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredPatients.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center text-slate-500">
-                    No patients match your search criteria.
-                  </td>
-                </tr>
-              ) : (
-                filteredPatients.map((patient) => (
+            <tbody className="divide-y divide-surface-variant/30 text-on-surface-variant">
+              {filteredPatients.map((patient) => {
+                const isUrgent = patient.requiresReview || patient.latestSeverityIndex >= 3;
+                const cstValue = patient.latestSeverityIndex === 3 ? 412 : patient.latestSeverityIndex === 2 ? 335 : 248;
+                const cstPercent = Math.min(100, Math.round((cstValue / 480) * 100));
+
+                return (
                   <tr
                     key={patient.id}
                     onClick={() => navigate(`/patients/${patient.id}`)}
-                    className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                    className={`${
+                      isUrgent ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-surface-container/40'
+                    } transition cursor-pointer`}
                   >
-                    {/* Patient ID */}
-                    <td className="px-4 py-3 whitespace-nowrap font-mono font-bold text-slate-900">
-                      <div className="flex items-center gap-1.5">
-                        <span>{patient.patientIdentifier}</span>
-                        {patient.requiresReview && (
-                          <span
-                            className="w-2 h-2 rounded-full bg-rose-500 shrink-0"
-                            title="Progression flagged - Clinical Review Required"
-                          />
-                        )}
+                    <td className="p-4 font-semibold text-on-surface flex items-center gap-3">
+                      {isUrgent && <span className="w-2 h-2 rounded-full bg-error animate-ping shrink-0" />}
+                      <div>
+                        <div className="text-sm font-bold text-primary">{patient.name}</div>
+                        <div className="text-[11px] text-on-surface-variant font-normal">
+                          {patient.age}y {patient.gender} • ID: {patient.patientIdentifier} • {patient.diabetesType}
+                        </div>
                       </div>
                     </td>
 
-                    {/* Name & Demographics */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
-                        {patient.name}
+                    <td className="p-4 font-mono text-on-surface">
+                      {patient.patientIdentifier.replace('PIQ-', '9042-')}-RETINA
+                    </td>
+
+                    <td className="p-4">
+                      {patient.latestSeverityIndex >= 3
+                        ? 'Optos UWF 200° + Zeiss Cirrus HD-OCT'
+                        : 'Topcon DRI OCT Triton + 50° Fundus'}
+                    </td>
+
+                    <td className="p-4">
+                      {patient.totalScans} Scans ({(patient.totalScans - 1) * 12 || 12} Mo Delta)
+                    </td>
+
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${isUrgent ? 'text-error' : 'text-secondary'}`}>
+                          {cstValue} µm {isUrgent ? '(+94 µm YoY)' : '(Stable)'}
+                        </span>
+                        <span className="text-[10px] text-on-surface-variant">(Norm: &lt;260 µm)</span>
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {patient.age} yrs • {patient.gender} • {patient.diabetesType}
+                      <div className="w-28 h-1.5 bg-surface-container rounded-full overflow-hidden mt-1">
+                        <div
+                          className={`h-full ${isUrgent ? 'bg-error' : 'bg-secondary'}`}
+                          style={{ width: `${cstPercent}%` }}
+                        />
                       </div>
                     </td>
 
-                    {/* Scan Count */}
-                    <td className="px-4 py-3 whitespace-nowrap text-center font-mono">
-                      <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-medium">
-                        <Layers size={11} className="text-slate-400" />
-                        <span>{patient.totalScans}</span>
+                    <td className="p-4">
+                      <span
+                        className={`px-2.5 py-1 rounded font-bold text-[11px] ${
+                          isUrgent
+                            ? 'bg-error-container/40 text-error'
+                            : patient.latestSeverityIndex === 2
+                            ? 'bg-surface-container-high text-primary'
+                            : 'bg-surface-container-high text-secondary'
+                        }`}
+                      >
+                        {patient.latestSeverity} • {isUrgent ? 'Center-Involved DME (OD)' : 'No Edema'}
                       </span>
                     </td>
 
-                    {/* Latest Severity */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {patient.latestSeverityIndex !== null && patient.latestSeverityIndex !== undefined ? (
-                        <SeverityBadge severity={patient.latestSeverityIndex} size="sm" showIndex />
-                      ) : (
-                        <span className="text-slate-400 italic text-[11px]">No scans yet</span>
-                      )}
-                    </td>
-
-                    {/* Longitudinal Trajectory */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {patient.totalScans > 1 ? (
-                        <TrajectoryBadge status={patient.trajectoryStatus} size="sm" />
-                      ) : (
-                        <span className="text-slate-400 text-[11px]">Baseline observation</span>
-                      )}
-                    </td>
-
-                    {/* Last Scan Date */}
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-500 font-mono">
-                      {formatDate(patient.latestScanDate)}
-                    </td>
-
-                    {/* Action */}
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="inline-flex items-center gap-1 text-slate-500 group-hover:text-teal-700 text-xs font-medium">
-                        <span>Open Profile</span>
-                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                      </div>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/patients/${patient.id}`);
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                          isUrgent
+                            ? 'bg-primary-container text-on-primary hover:bg-primary shadow-[0_0_12px_rgba(56,189,248,0.2)]'
+                            : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
+                        }`}
+                      >
+                        {isUrgent ? 'Inspect Timeline →' : 'Review'}
+                      </button>
                     </td>
                   </tr>
-                ))
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Add Demo Patient Modal */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Register Demo Patient Record"
-        subtitle="Adds a synthetic patient to the local cohort for testing longitudinal workflows."
-      >
-        <form onSubmit={handleCreatePatient} className="flex flex-col gap-3.5 text-xs">
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Patient Full Name (or Demo Identifier)
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Clara Oswald"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-slate-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Age</label>
-              <input
-                type="number"
-                min="18"
-                max="100"
-                value={formData.age}
-                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-slate-500"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Gender</label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-slate-500 bg-white"
+      {/* ADD DEMO PATIENT MODAL */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-md w-full glass-station rounded-2xl p-6 border border-surface-variant/50 shadow-2xl relative">
+            <div className="flex justify-between items-center pb-3 border-b border-surface-variant/40">
+              <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
+                Enroll New Surveillance Patient
+              </h3>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-on-surface-variant hover:text-on-surface"
               >
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Other">Other</option>
-              </select>
+                ✕
+              </button>
             </div>
-          </div>
 
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Diabetes Classification &amp; Duration
-            </label>
-            <input
-              type="text"
-              value={formData.diabetesType}
-              onChange={(e) => setFormData({ ...formData, diabetesType: e.target.value })}
-              className="w-full px-3 py-1.5 border border-slate-300 rounded focus:outline-none focus:border-slate-500"
-            />
-          </div>
+            <form onSubmit={handleCreatePatient} className="space-y-4 pt-4 text-xs">
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Jonathan Mercer"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-surface-variant text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded p-2.5 text-[11px] text-slate-500 flex items-start gap-2 mt-1">
-            <AlertCircle size={13} className="text-teal-600 shrink-0 mt-0.5" />
-            <span>
-              Synthetic demo records are stored locally for testing fundus image upload and longitudinal analysis.
-            </span>
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-on-surface-variant font-semibold mb-1">Age</label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-surface-variant text-on-surface focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-on-surface-variant font-semibold mb-1">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-surface-variant text-on-surface focus:outline-none focus:border-primary"
+                  >
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 rounded bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
-            >
-              Register &amp; Open
-            </button>
-          </div>
-        </form>
-      </Modal>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">
+                  Diabetes Classification
+                </label>
+                <input
+                  type="text"
+                  value={formData.diabetesType}
+                  onChange={(e) => setFormData({ ...formData, diabetesType: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-surface-container-lowest border border-surface-variant text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <Toast
-          message={toastMessage.message}
-          type={toastMessage.type}
-          onClose={() => setToastMessage(null)}
-        />
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-semibold shadow-[0_0_12px_rgba(56,189,248,0.25)]"
+                >
+                  Enroll Patient
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

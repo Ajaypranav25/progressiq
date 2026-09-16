@@ -1,22 +1,21 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
 import { CLINICAL_DISCLAIMER_TEXT } from '../../utils/constants';
 
 export function ClinicalDisclaimer({ compact = false }) {
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded">
-        <AlertCircle size={12} className="text-amber-600 shrink-0" />
-        <span className="truncate">Research Prototype • Model output requires clinical review</span>
+      <div className="flex items-center gap-1.5 text-[11px] text-on-surface-variant bg-surface-container-low border border-surface-variant/40 px-2.5 py-1 rounded">
+        <span className="material-symbols-outlined text-[13px] text-amber-400 shrink-0">warning</span>
+        <span className="truncate">Research Prototype • Model prediction requires clinical review</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-50/90 border border-slate-200 rounded-md p-3 text-xs text-slate-600 flex items-start gap-2.5">
-      <AlertCircle size={15} className="text-amber-600 shrink-0 mt-0.5" />
-      <div className="flex-1 leading-relaxed">
-        <span className="font-semibold text-slate-700">Notice for Medical Evaluators: </span>
+    <div className="bg-surface-container-lowest/70 border border-surface-variant/40 rounded-xl p-3 text-xs text-on-surface-variant flex items-start gap-2.5 backdrop-blur-sm">
+      <span className="material-symbols-outlined text-[16px] text-amber-400 shrink-0 mt-0.5">verified_user</span>
+      <div className="flex-1 leading-relaxed text-[11px]">
+        <strong className="text-on-surface font-semibold">Clinical Safety Notice: </strong>
         {CLINICAL_DISCLAIMER_TEXT}
       </div>
     </div>

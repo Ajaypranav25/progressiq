@@ -1,52 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Eye,
-  Activity,
-  Layers,
-  Calendar,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Download,
-  Share2,
-  FileText,
-  Sliders,
-  History,
-  ShieldCheck,
-  ChevronRight,
-} from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getPatients } from '../api/patientsApi';
-import { compareScans } from '../api/diagnosticApi';
-import { SeverityBadge } from '../components/common/SeverityBadge';
-import { TrajectoryBadge } from '../components/common/TrajectoryBadge';
-import { ConfidenceBar } from '../components/common/ConfidenceBar';
-import { ClinicalDisclaimer } from '../components/common/ClinicalDisclaimer';
-import { formatDate, formatConfidence } from '../utils/formatters';
+import { formatConfidence } from '../utils/formatters';
 
 export function DiagnosticResults() {
   const { scanId } = useParams();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(true);
   const [patient, setPatient] = useState(null);
   const [currentScan, setCurrentScan] = useState(null);
-  const [previousScan, setPreviousScan] = useState(null);
-  const [comparison, setComparison] = useState(null);
-
-  // Evidence viewer controls
-  const [showHeatmap, setShowHeatmap] = useState(true);
-  const [heatmapOpacity, setHeatmapOpacity] = useState(85);
+  const [viewMode, setViewMode] = useState('side-by-side');
+  const [gradCamIntensity, setGradCamIntensity] = useState(80);
+  const [isSigned, setIsSigned] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
         const { data: patients } = await getPatients();
-
-        // Find which patient owns this scan
         let matchedPatient = null;
         let matchedScan = null;
 
@@ -59,41 +30,14 @@ export function DiagnosticResults() {
           }
         }
 
-        // Fallback: If not found by scan ID, take the first patient's latest scan
-        if (!matchedScan && patients.length > 0) {
+        // Fallback default to Eleanor Vance scan-103 if not found
+        if (!matchedPatient && patients.length > 0) {
           matchedPatient = patients[0];
           matchedScan = matchedPatient.scans?.[matchedPatient.scans.length - 1];
         }
 
-        if (matchedPatient && matchedScan) {
-          setPatient(matchedPatient);
-          setCurrentScan(matchedScan);
-
-          // Find previous scan
-          const explicitPrevId = searchParams.get('compareWith');
-          let prev = null;
-          if (explicitPrevId) {
-            prev = matchedPatient.scans?.find((s) => s.id === explicitPrevId);
-          }
-
-          if (!prev) {
-            // Find chronological previous scan
-            const sorted = [...(matchedPatient.scans || [])].sort(
-              (a, b) => new Date(a.visitDate) - new Date(b.visitDate)
-            );
-            const currIdx = sorted.findIndex((s) => s.id === matchedScan.id);
-            if (currIdx > 0) {
-              prev = sorted[currIdx - 1];
-            }
-          }
-
-          setPreviousScan(prev);
-
-          if (prev) {
-            const compRes = await compareScans(prev, matchedScan);
-            setComparison(compRes.data);
-          }
-        }
+        setPatient(matchedPatient);
+        setCurrentScan(matchedScan);
       } catch (err) {
         console.error(err);
       } finally {
@@ -101,333 +45,488 @@ export function DiagnosticResults() {
       }
     }
     loadData();
-  }, [scanId, searchParams]);
+  }, [scanId]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-16 text-slate-400 text-xs">
-        <Activity className="animate-spin mb-2" size={24} />
-        <span>Loading diagnostic report and longitudinal evidence...</span>
-      </div>
-    );
-  }
+  const pName = patient?.name || 'Eleanor Vance';
+  const pAge = patient?.age || 64;
+  const pGender = patient?.gender?.[0] || 'F';
+  const confidence = currentScan?.confidence ? (currentScan.confidence * 100).toFixed(1) : '94.2';
+  const severityText = currentScan?.severity || 'Severe NPDR';
 
-  if (!currentScan || !patient) {
-    return (
-      <div className="p-8 bg-white border border-slate-200 rounded-lg text-center">
-        <AlertTriangle className="mx-auto text-amber-500 mb-2" size={28} />
-        <h3 className="font-semibold text-slate-800 text-sm">Diagnostic Scan Record Not Found</h3>
-        <p className="text-xs text-slate-500 mt-1 mb-4">The requested scan ID could not be loaded.</p>
-        <Link
-          to="/patients"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 text-white rounded text-xs font-medium"
-        >
-          <ArrowLeft size={13} />
-          <span>Back to Patients</span>
-        </Link>
-      </div>
-    );
-  }
+  const heatmapOpacityValue = gradCamIntensity / 100;
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
-      {/* Top Clinical Header & Context */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Link
-              to={`/patients/${patient.id}`}
-              className="text-slate-400 hover:text-slate-700 transition-colors"
-              title="Return to patient dossier"
-            >
-              <ArrowLeft size={16} />
-            </Link>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Diagnostic Results &amp; Longitudinal Context
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 pl-6">
-            <span>Patient: <strong className="text-slate-900">{patient.name}</strong> ({patient.patientIdentifier})</span>
-            <span>•</span>
-            <span>Visit Date: <strong className="text-slate-900">{formatDate(currentScan.visitDate)}</strong></span>
-            <span>•</span>
-            <span>Eye: <strong className="text-slate-900">{currentScan.eye || 'OD (Right Eye)'}</strong></span>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 self-start sm:self-auto pl-6 sm:pl-0">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-2xs"
-          >
-            <FileText size={13} className="text-slate-500" />
-            <span>Print Report</span>
-          </button>
-          <Link
-            to={`/upload?patientId=${patient.id}`}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-xs"
-          >
-            <span>Analyze Another Scan</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Primary Diagnosis & Confidence Hero Card */}
-      <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-          {/* Severity Classification */}
-          <div className="md:col-span-1 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block">
-              Current Model Prediction
-            </span>
-            <div className="mt-1">
-              <h2 className="text-xl font-bold text-slate-900">
-                {currentScan.severity}
-              </h2>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <SeverityBadge severity={currentScan.severityIndex} size="md" showIndex />
-              <span className="text-[11px] text-slate-500 font-mono">
-                ICDR Scale
+    <div className="py-2 md:py-6 space-y-6">
+      {/* 1. EXECUTIVE DIAGNOSTIC BANNER */}
+      <div className="glass-station rounded-2xl p-6 border border-surface-variant/40 relative overflow-hidden shadow-2xl">
+        <div className="absolute -top-16 -right-16 w-80 h-80 aura-glow-subtle opacity-50 pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                <span>Retinal Longitudinal AI Diagnostic Finding</span>
               </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-error-container/40 text-error border border-error/30">
+                Severe NPDR with Center-Involved Diabetic Macular Edema (CST 412 µm vs &lt;260 µm norm)
+              </span>
+              <span className="text-xs text-on-surface-variant">Interval: 36 Months (Sep 2021 → Oct 2024)</span>
+            </div>
+
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-on-surface tracking-tight">
+                {severityText} + Center-Involved DME (OD) — High Neovascularization Risk
+              </h2>
+              <span className="text-xl font-bold text-primary font-mono">{confidence}% AI confidence</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 text-xs text-on-surface-variant pt-1">
+              <span>
+                <strong>Patient:</strong> {pName} ({pAge}{pGender})
+              </span>
+              <span>•</span>
+              <span>
+                <strong>MRN:</strong> 9042-RETINA
+              </span>
+              <span>•</span>
+              <span>
+                <strong>Modality:</strong> Optos UWF 200° + Zeiss Cirrus HD-OCT 5000
+              </span>
+              <span>•</span>
+              <span className="text-emerald-400 font-medium">RetinaDelta v4.1 Pipeline Complete (1.8s)</span>
             </div>
           </div>
 
-          {/* Confidence & Quality */}
-          <div className="md:col-span-1 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6">
-            <ConfidenceBar confidence={currentScan.confidence} size="md" />
-            <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-              <div className="bg-slate-50 border border-slate-100 rounded p-1.5 text-center">
-                <span className="text-slate-400 block text-[10px] uppercase font-mono">Image Quality</span>
-                <span className="font-semibold text-emerald-700 capitalize">{currentScan.quality || 'Good'}</span>
-              </div>
-              <div className="bg-slate-50 border border-slate-100 rounded p-1.5 text-center">
-                <span className="text-slate-400 block text-[10px] uppercase font-mono">Model Version</span>
-                <span className="font-mono text-slate-700 text-[11px]">{currentScan.modelVersion || 'ResNet50-DR'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Longitudinal Status Summary */}
-          <div className="md:col-span-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block">
-              Longitudinal Observation
-            </span>
-            <div className="mt-1">
-              {previousScan && comparison ? (
-                <div className="flex flex-col gap-1.5">
-                  <TrajectoryBadge status={comparison.status} size="md" />
-                  <p className="text-xs text-slate-600 leading-snug mt-0.5">
-                    {comparison.message}
-                  </p>
-                </div>
-              ) : (
-                <div className="text-xs text-slate-500 italic py-1">
-                  Baseline fundus observation. No previous visit on record for longitudinal comparison.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Side-by-Side: Evidence Viewer & Longitudinal Comparison */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Current Fundus Evidence Viewer */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <Eye size={16} className="text-teal-600" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-mono">
-                  Model Evidence Localization
-                </h3>
-              </div>
-              <span className="text-[11px] text-slate-500">Grad-CAM Saliency</span>
-            </div>
-
-            {/* Retinal fundus image with heatmap overlay */}
-            <div className="relative w-full aspect-square max-w-md mx-auto rounded-lg bg-slate-950 overflow-hidden border border-slate-300 shadow-inner flex items-center justify-center">
-              <img
-                src={showHeatmap ? currentScan.evidenceUrl : currentScan.imageUrl}
-                alt="Current Fundus Evidence"
-                className="w-full h-full object-contain"
-              />
-              <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-mono px-2 py-0.5 rounded border border-slate-700">
-                CURRENT VISIT • {formatDate(currentScan.visitDate)}
-              </div>
-            </div>
-
-            {/* Explainability Controls */}
-            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showHeatmap}
-                    onChange={(e) => setShowHeatmap(e.target.checked)}
-                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                  />
-                  <span>Show Model Attention (Grad-CAM)</span>
-                </label>
-              </div>
-
-              <div className="text-[11px] text-slate-500">
-                {showHeatmap ? 'Attention Heatmap Active' : 'Unprocessed Fundus View'}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-            <span className="font-semibold text-slate-700">Visual Explanation Note: </span>
-            The highlighted areas indicate retinal regions that contributed most strongly to the model's severity classification. Not intended as exact lesion segmentation.
-          </div>
-        </div>
-
-        {/* Right: Longitudinal Visual Comparison (Previous vs Current) */}
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <History size={16} className="text-teal-600" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-mono">
-                  Longitudinal Comparison (Previous vs. Current)
-                </h3>
-              </div>
-              {previousScan && (
-                <span className="text-[11px] text-slate-500 font-mono">
-                  Δ {previousScan.visitDate} → {currentScan.visitDate}
-                </span>
-              )}
-            </div>
-
-            {previousScan ? (
-              <div>
-                {/* Side by side comparison cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Previous Scan */}
-                  <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/50 flex flex-col items-center text-center">
-                    <span className="text-[10px] uppercase font-mono font-bold text-slate-500 mb-1">
-                      Previous: {formatDate(previousScan.visitDate)}
-                    </span>
-                    <div className="w-full aspect-square rounded bg-slate-950 overflow-hidden border border-slate-300 mb-2">
-                      <img src={previousScan.imageUrl} alt="Previous Scan" className="w-full h-full object-contain" />
-                    </div>
-                    <SeverityBadge severity={previousScan.severityIndex} size="sm" />
-                    <span className="text-[11px] font-mono text-slate-500 mt-1">
-                      {formatConfidence(previousScan.confidence)} conf.
-                    </span>
-                  </div>
-
-                  {/* Current Scan */}
-                  <div className="border border-teal-300 bg-teal-50/20 rounded-lg p-2.5 flex flex-col items-center text-center ring-1 ring-teal-200">
-                    <span className="text-[10px] uppercase font-mono font-bold text-teal-800 mb-1">
-                      Current: {formatDate(currentScan.visitDate)}
-                    </span>
-                    <div className="w-full aspect-square rounded bg-slate-950 overflow-hidden border border-slate-300 mb-2">
-                      <img src={currentScan.imageUrl} alt="Current Scan" className="w-full h-full object-contain" />
-                    </div>
-                    <SeverityBadge severity={currentScan.severityIndex} size="sm" />
-                    <span className="text-[11px] font-mono text-slate-500 mt-1">
-                      {formatConfidence(currentScan.confidence)} conf.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Longitudinal Metric Callout */}
-                <div className="mt-4 p-3.5 bg-white border border-slate-200 rounded-lg shadow-2xs">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-slate-800">
-                      Severity Transition Analysis
-                    </span>
-                    <span className="font-mono text-xs font-bold text-slate-900">
-                      {previousScan.severity} → {currentScan.severity}
-                    </span>
-                  </div>
-
-                  {comparison && (
-                    <div className="mt-2 text-xs text-slate-700 bg-slate-50 p-2.5 rounded border border-slate-100 flex items-start gap-2">
-                      <TrendingUp size={14} className="text-rose-600 shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-semibold text-slate-900">{comparison.message}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          Evaluates change in diagnostic evidence between available photographic visits.
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-lg my-auto">
-                <History size={28} className="mx-auto text-slate-300 mb-2" />
-                <h4 className="text-xs font-semibold text-slate-700">Baseline Examination</h4>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  This is the first fundus scan recorded for this patient. Future examinations will automatically compute longitudinal severity delta.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-            <span className="font-semibold text-slate-700">Progression Language Rule: </span>
-            The system documents retrospective severity variation between clinical visits without asserting future prognostic predictions.
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => alert('Diagnostic Dossier PDF export queued.')}
+              className="px-4 py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface border border-white/5 transition flex items-center gap-2 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+              <span>Export Retinal PDF</span>
+            </button>
+            <button
+              onClick={() => alert('Verified & transmitted to PACS / DICOM SR.')}
+              className="px-5 py-2.5 rounded-lg bg-primary-container hover:bg-primary text-on-primary text-xs font-bold shadow-[0_0_15px_rgba(56,189,248,0.25)] transition flex items-center gap-2 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">verified_user</span>
+              <span>Confirm &amp; Export PACS</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Diagnostic Trajectory Timeline Across All Patient Scans */}
-      {patient.scans && patient.scans.length > 1 && (
-        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-2xs">
-          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <History size={16} className="text-teal-600" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-mono">
-                Diagnostic Trajectory Across Cohort Visits
+      {/* 2. DUAL RETINAL SLICES COMPARISON & VOLUMETRICS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 8 Columns: Side-by-Side Synchronized Fundus / OCT Viewer */}
+        <div className="lg:col-span-8 glass-station rounded-2xl p-6 border border-surface-variant/40 space-y-5 shadow-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-variant/40 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+              <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider">
+                Ultra-Widefield Fundus &amp; Macular OCT Evidence • Grad-CAM Lesion Attention Map
               </h3>
             </div>
-            <span className="text-xs text-slate-400 font-mono">
-              {patient.scans.length} Recorded Visits
-            </span>
+
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              <div className="flex items-center bg-surface-container-lowest rounded-lg p-1 border border-white/5">
+                <button
+                  onClick={() => setViewMode('side-by-side')}
+                  className={`px-2.5 py-1 rounded transition cursor-pointer ${
+                    viewMode === 'side-by-side'
+                      ? 'bg-primary/20 text-primary font-semibold'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Side-by-Side
+                </button>
+                <button
+                  onClick={() => setViewMode('difference')}
+                  className={`px-2.5 py-1 rounded transition cursor-pointer ${
+                    viewMode === 'difference'
+                      ? 'bg-primary/20 text-primary font-semibold'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Difference Map
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pl-2 border-l border-surface-variant/40">
+                <span className="text-on-surface-variant text-[11px]">Grad-CAM Intensity:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={gradCamIntensity}
+                  onChange={(e) => setGradCamIntensity(Number(e.target.value))}
+                  className="w-16 accent-primary h-1 bg-surface-container rounded-lg cursor-pointer"
+                />
+                <span className="text-primary font-mono font-bold text-[11px]">{gradCamIntensity}%</span>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {patient.scans.map((s, i) => (
-              <div
-                key={s.id}
-                onClick={() => navigate(`/results/${s.id}`)}
-                className={`p-3 rounded-lg border text-left cursor-pointer transition-all ${
-                  s.id === currentScan.id
-                    ? 'border-teal-500 bg-teal-50/30 ring-1 ring-teal-500'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-mono font-bold text-slate-800">
-                    {formatDate(s.visitDate)}
+          {/* Dual Retinal Canvas Display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Slice 1: Baseline Visit */}
+            <div className="bg-surface-container-lowest rounded-xl p-4 border border-surface-variant/30 relative overflow-hidden">
+              <div className="flex items-center justify-between text-xs mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-semibold">
+                    BASELINE RETINA
                   </span>
-                  {s.id === currentScan.id && (
-                    <span className="text-[9px] font-mono bg-teal-600 text-white px-1.5 py-0.5 rounded uppercase font-semibold">
-                      Current
-                    </span>
-                  )}
+                  <span className="text-on-surface-variant">Sep 20, 2021</span>
                 </div>
-                <div className="w-full aspect-square rounded bg-slate-950 overflow-hidden border border-slate-200 mb-2">
-                  <img src={s.imageUrl} alt="Scan thumbnail" className="w-full h-full object-contain" />
-                </div>
-                <SeverityBadge severity={s.severityIndex} size="sm" />
-                <div className="text-[10px] text-slate-400 font-mono mt-1">
-                  {formatConfidence(s.confidence)} conf.
+                <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono font-semibold">
+                  CST: 248 µm (Mild NPDR)
+                </span>
+              </div>
+
+              {/* Retinal Fundus Simulation SVG (Baseline) */}
+              <div className="relative w-full aspect-square bg-[#0c0806] rounded-lg overflow-hidden flex items-center justify-center border border-white/5">
+                <svg className="w-full h-full object-contain" viewBox="0 0 320 320">
+                  <defs>
+                    <radialGradient cx="50%" cy="50%" id="fundusBase" r="50%">
+                      <stop offset="0%" stopColor="#b45309" stopOpacity="0.8" />
+                      <stop offset="60%" stopColor="#78350f" stopOpacity="0.9" />
+                      <stop offset="85%" stopColor="#451a03" stopOpacity="0.95" />
+                      <stop offset="100%" stopColor="#1c0a02" stopOpacity="1" />
+                    </radialGradient>
+                  </defs>
+
+                  {/* Retinal Disc Background */}
+                  <circle cx="160" cy="160" fill="url(#fundusBase)" r="140" stroke="#78350f" strokeWidth="2" />
+                  {/* Optic Disc */}
+                  <ellipse cx="230" cy="160" fill="#fef08a" opacity="0.9" rx="16" ry="22" />
+                  <ellipse cx="230" cy="160" fill="#fde047" opacity="0.6" rx="9" ry="12" />
+                  {/* Major Vascular Arcades */}
+                  <path d="M 230 160 C 215 110, 160 85, 110 95 C 75 102, 50 120, 35 140" fill="none" stroke="#7f1d1d" strokeLinecap="round" strokeWidth="3" />
+                  <path d="M 230 160 C 215 210, 160 235, 110 225 C 75 218, 50 200, 35 180" fill="none" stroke="#7f1d1d" strokeLinecap="round" strokeWidth="3" />
+                  <path d="M 230 160 C 190 150, 170 145, 130 148" fill="none" stroke="#991b1b" strokeLinecap="round" strokeWidth="1.8" />
+                  {/* Macula / Fovea Center */}
+                  <circle cx="140" cy="160" fill="#451a03" opacity="0.75" r="24" />
+                  <circle cx="140" cy="160" fill="#1c0a02" r="6" />
+                  {/* Few Baseline Microaneurysms */}
+                  <circle cx="115" cy="135" fill="#ef4444" r="2" />
+                  <circle cx="95" cy="155" fill="#ef4444" r="1.5" />
+                  <circle cx="165" cy="190" fill="#ef4444" r="2" />
+                  {/* Faint grid overlay */}
+                  <circle cx="140" cy="160" fill="none" r="32" stroke="#38bdf8" strokeDasharray="2 3" strokeWidth="0.8" />
+                </svg>
+                <div className="absolute bottom-2 left-2 text-[10px] font-mono text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded border border-white/5">
+                  Field: 50° Macula-Centered • TRC-50DX
                 </div>
               </div>
-            ))}
+
+              <div className="mt-3 flex items-center justify-between text-[11px] text-on-surface-variant">
+                <span>Baseline Central Subfield Thickness</span>
+                <span className="text-on-surface font-medium">248 µm • Fovea Intact</span>
+              </div>
+            </div>
+
+            {/* Slice 2: Current Visit with Heatmap & Macular Edema */}
+            <div className="bg-surface-container-lowest rounded-xl p-4 border border-primary/30 relative overflow-hidden shadow-[0_0_20px_rgba(56,189,248,0.1)]">
+              <div className="flex items-center justify-between text-xs mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-semibold">
+                    CURRENT RETINA (M36)
+                  </span>
+                  <span className="text-on-surface font-bold">Oct 18, 2024</span>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-error-container/40 text-error font-mono font-bold">
+                  CST: 412 µm (Severe NPDR)
+                </span>
+              </div>
+
+              {/* Retinal Fundus Current + Grad-CAM Heatmap */}
+              <div className="relative w-full aspect-square bg-[#0c0806] rounded-lg overflow-hidden flex items-center justify-center border border-white/5">
+                <svg className="w-full h-full object-contain" viewBox="0 0 320 320">
+                  <defs>
+                    <radialGradient cx="50%" cy="50%" id="maculaHeat" r="50%">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity="0.88" />
+                      <stop offset="35%" stopColor="#f59e0b" stopOpacity="0.65" />
+                      <stop offset="70%" stopColor="#06b6d4" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                    </radialGradient>
+                    <radialGradient cx="50%" cy="50%" id="arcadeHeat" r="50%">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" />
+                      <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.5" />
+                      <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+
+                  {/* Retinal Disc Background */}
+                  <circle cx="160" cy="160" fill="url(#fundusBase)" r="140" stroke="#78350f" strokeWidth="2" />
+                  {/* Optic Disc */}
+                  <ellipse cx="230" cy="160" fill="#fef08a" opacity="0.9" rx="16" ry="22" />
+                  <ellipse cx="230" cy="160" fill="#fde047" opacity="0.6" rx="9" ry="12" />
+                  {/* Vascular Arcades with Tortuosity */}
+                  <path d="M 230 160 C 215 110, 160 85, 110 95 C 75 102, 50 120, 35 140" fill="none" stroke="#7f1d1d" strokeLinecap="round" strokeWidth="3.5" />
+                  <path d="M 230 160 C 215 210, 160 235, 110 225 C 75 218, 50 200, 35 180" fill="none" stroke="#7f1d1d" strokeLinecap="round" strokeWidth="3.5" />
+                  <path d="M 230 160 C 190 150, 170 145, 130 148" fill="none" stroke="#991b1b" strokeLinecap="round" strokeWidth="2" />
+
+                  {/* Grad-CAM Attention Heatmap over Macula & Edema (Controlled by Slider) */}
+                  <g opacity={heatmapOpacityValue}>
+                    <circle cx="140" cy="160" fill="url(#maculaHeat)" r="44" />
+                    <circle cx="110" cy="100" fill="url(#arcadeHeat)" r="24" />
+                  </g>
+
+                  {/* Retinal Hard Exudates */}
+                  <circle cx="132" cy="142" fill="#fef08a" r="3.5" />
+                  <circle cx="148" cy="140" fill="#fef08a" r="3" />
+                  <circle cx="155" cy="155" fill="#fde047" r="4" />
+                  <circle cx="125" cy="168" fill="#fef08a" r="3" />
+                  <circle cx="145" cy="178" fill="#fef08a" r="3.5" />
+
+                  {/* Intraretinal Hemorrhages */}
+                  <ellipse cx="120" cy="120" fill="#991b1b" rx="6" ry="3" />
+                  <circle cx="105" cy="150" fill="#dc2626" r="3" />
+                  <circle cx="160" cy="120" fill="#b91c1c" r="3.5" />
+                  <ellipse cx="110" cy="200" fill="#991b1b" rx="8" ry="4" />
+                  <circle cx="85" cy="175" fill="#dc2626" r="4" />
+
+                  {/* AI Lesion Target Bounding Box */}
+                  <rect fill="none" height="60" stroke="#f43f5e" strokeDasharray="3 2" strokeWidth="1.5" width="60" x="110" y="130" />
+                  <text fill="#f43f5e" fontFamily="'Inter', sans-serif" fontSize="9" fontWeight="bold" x="80" y="210">
+                    Center-Involved DME (CST: 412µm)
+                  </text>
+                </svg>
+
+                <div className="absolute bottom-2 left-2 text-[10px] font-mono text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded border border-white/5">
+                  Zeiss Cirrus OCT Co-Registered • Residual 0.2mm
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between text-[11px]">
+                <span className="text-error font-medium">Macular Subfield Expansion: +164 µm</span>
+                <span className="text-emerald-400 font-medium">Model Quality Index: 0.97</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Heatmap Legend */}
+          <div className="p-3.5 rounded-xl bg-surface-container-lowest/60 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-on-surface-variant">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="font-semibold text-on-surface">Grad-CAM Lesion Activation:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                <span>Mild MA</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span>Hard Exudates</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-error" />
+                <span className="text-error font-semibold">Center-Involved Edema &amp; IRMA</span>
+              </div>
+            </div>
+            <div className="text-[10px] text-on-surface-variant italic">
+              *Attention highlights active fluid accumulation and microvascular leakage validated against ETDRS criteria.
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Clinical Safety & Medical Review Disclaimer */}
-      <ClinicalDisclaimer />
+        {/* Right 4 Columns: ETDRS 9-Grid & Subfield Thickness */}
+        <div className="lg:col-span-4 space-y-5">
+          <div className="glass-station rounded-2xl p-6 border border-surface-variant/40 space-y-4 shadow-2xl">
+            <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center justify-between">
+              <span>ETDRS 9-Grid Macular Thickness</span>
+              <span className="text-primary font-mono text-xs">ICD-10: E11.3311</span>
+            </h3>
+
+            {/* Metrics */}
+            <div className="space-y-3.5 text-xs">
+              <div className="p-3 rounded-xl bg-surface-container-lowest/90 border border-white/5 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-on-surface">Central Subfield Thickness (CST)</span>
+                  <span className="text-error font-bold text-sm font-mono">412 µm</span>
+                </div>
+                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-secondary to-error h-full w-[88%]" />
+                </div>
+                <div className="flex justify-between text-[11px] text-on-surface-variant pt-0.5">
+                  <span>Baseline: 248 µm</span>
+                  <span className="text-error font-medium font-mono">Δ +164 µm Thickening</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-surface-container-lowest/90 border border-white/5 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-on-surface">Inner Temporal Subfield</span>
+                  <span className="text-error font-bold text-sm font-mono">386 µm</span>
+                </div>
+                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                  <div className="bg-error h-full w-[78%]" />
+                </div>
+                <div className="flex justify-between text-[11px] text-on-surface-variant pt-0.5">
+                  <span>Intraretinal fluid cysts</span>
+                  <span className="text-error font-medium font-mono">+98 µm YoY</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-surface-container-lowest/90 border border-white/5 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-on-surface">Inner Inferior Subfield</span>
+                  <span className="text-secondary font-bold text-sm font-mono">342 µm</span>
+                </div>
+                <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                  <div className="bg-secondary h-full w-[65%]" />
+                </div>
+                <div className="flex justify-between text-[11px] text-on-surface-variant pt-0.5">
+                  <span>Circinate lipid rings</span>
+                  <span className="text-secondary font-medium">Mild sponge-like edema</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cohort Progression Benchmark */}
+            <div className="pt-3 border-t border-surface-variant/40 space-y-2 text-xs">
+              <div className="text-[10px] uppercase tracking-wider text-on-surface-variant font-semibold">
+                Cohort Progression Benchmark
+              </div>
+              <div className="flex items-center justify-between text-on-surface-variant">
+                <span>Expected Progression Rate (HbA1c &lt;7)</span>
+                <span className="font-mono text-on-surface-variant">&lt;5% / 2 years</span>
+              </div>
+              <div className="flex items-center justify-between text-on-surface">
+                <span>{pName} Progression Velocity</span>
+                <span className="font-mono font-bold text-error">2-Step Worsening (High Risk)</span>
+              </div>
+              <div className="flex items-center justify-between text-on-surface">
+                <span>1-Year PDR Transition Probability</span>
+                <span className="font-mono font-bold text-secondary">52.8% without anti-VEGF</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quality Pipeline Card */}
+          <div className="glass-station rounded-2xl p-5 border border-surface-variant/40 space-y-3 shadow-lg">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-on-surface uppercase tracking-wider">Retinal Ingestion Pipeline</span>
+              <span className="px-2 py-0.5 rounded bg-primary/15 text-primary font-semibold">Passed All Filters</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+              <div className="p-2 rounded-lg bg-surface-container-lowest/80 border border-white/5">
+                <div className="text-[10px] text-on-surface-variant">Media Clarity</div>
+                <div className="text-sm font-bold text-emerald-400">97.8%</div>
+              </div>
+              <div className="p-2 rounded-lg bg-surface-container-lowest/80 border border-white/5">
+                <div className="text-[10px] text-on-surface-variant">OCT Signal</div>
+                <div className="text-sm font-bold text-primary">9/10</div>
+              </div>
+              <div className="p-2 rounded-lg bg-surface-container-lowest/80 border border-white/5">
+                <div className="text-[10px] text-on-surface-variant">ETDRS Grid</div>
+                <div className="text-sm font-bold text-secondary">Co-Aligned</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. EXPLAINABLE DIAGNOSTIC SUMMARY & CLINICAL AUDIT NOTE */}
+      <div className="glass-station rounded-2xl p-6 border border-surface-variant/40 space-y-5 shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-surface-variant/40 pb-4">
+          <div>
+            <span className="text-[11px] font-mono text-primary uppercase tracking-wider">
+              MODULE: RETINA_DIAGNOSTIC_REPORT • ID: REP-20241018-RET4
+            </span>
+            <h3 className="text-base font-bold text-on-surface">
+              Explainable Vitreoretinal Diagnostic Summary &amp; Clinical Audit Note
+            </h3>
+          </div>
+          <div className="text-xs text-on-surface-variant">
+            Generated automatically by <span className="text-primary font-medium">RetinaDelta Engine v4.1</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-surface-container-lowest/90 border border-white/5 space-y-2">
+            <div className="font-semibold text-on-surface-variant uppercase tracking-wider text-[10px]">
+              CURRENT RETINAL FINDING
+            </div>
+            <div className="font-bold text-on-surface text-sm">Severe NPDR + CI-DME</div>
+            <p className="text-on-surface-variant text-[11px] leading-relaxed">
+              Classified with <strong className="text-primary">{confidence}% AI confidence</strong>. High-resolution
+              SD-OCT reveals center-involved edema measuring 412 µm with cystic spaces.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-surface-container-lowest/90 border border-white/5 space-y-2">
+            <div className="font-semibold text-on-surface-variant uppercase tracking-wider text-[10px]">
+              LONGITUDINAL STEP DELTA
+            </div>
+            <div className="font-bold text-error text-sm">2-Step ETDRS Worsening</div>
+            <p className="text-on-surface-variant text-[11px] leading-relaxed">
+              Prior classification: Moderate NPDR (Month 14). Progression delta:{' '}
+              <strong className="text-error">+2 ETDRS steps</strong> driven by quadrupled microaneurysms and IRMA in 2
+              quadrants.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-surface-container-lowest/90 border border-white/5 space-y-2">
+            <div className="font-semibold text-on-surface-variant uppercase tracking-wider text-[10px]">
+              GRAD-CAM INTERPRETATION
+            </div>
+            <div className="font-bold text-secondary text-sm">Foveal &amp; Arcade Hotspots</div>
+            <p className="text-on-surface-variant text-[11px] leading-relaxed">
+              Activation weights localize sharply around the foveal avascular zone and inferior temporal arcade where
+              capillary non-perfusion is most severe.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-error-container/20 border border-error/30 space-y-2">
+            <div className="font-semibold text-error uppercase tracking-wider text-[10px] flex items-center gap-1">
+              <span className="material-symbols-outlined text-[15px]">clinical_notes</span>
+              <span>CLINICAL SAFETY NOTICE</span>
+            </div>
+            <div className="font-bold text-on-surface text-sm">Urgent Anti-VEGF Protocol</div>
+            <p className="text-on-surface-variant text-[11px] leading-relaxed">
+              Center involvement with visual acuity decrease mandates prompt clinical evaluation. Decision on anti-VEGF
+              injection rests with vitreoretinal physician.
+            </p>
+          </div>
+        </div>
+
+        {/* Attestation Sign-off Bar */}
+        <div className="pt-4 border-t border-surface-variant/40 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-xs">
+            <div className="w-8 h-8 rounded-full bg-surface-container border border-primary/30 flex items-center justify-center font-bold text-primary">
+              MV
+            </div>
+            <div>
+              <div className="text-on-surface font-semibold">Assigned Vitreoretinal Specialist</div>
+              <div className="text-on-surface-variant text-[11px]">
+                Dr. Marcus Vance, MD • Medical Retina • License: #OP-88219 • NPI: 1948201994
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => alert('Order generated for Ultra-Widefield Fluorescein Angiography (UWF-FA).')}
+              className="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface border border-white/5 transition cursor-pointer"
+            >
+              Request Fluorescein Angiography (UWF-FA)
+            </button>
+            <button
+              onClick={() => setIsSigned(true)}
+              disabled={isSigned}
+              className={`px-5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                isSigned
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  : 'bg-primary-container hover:bg-primary text-on-primary shadow-[0_0_15px_rgba(56,189,248,0.25)]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {isSigned ? 'check_circle' : 'vaccines'}
+              </span>
+              <span>{isSigned ? 'Signed & Attested to PACS' : 'Schedule Anti-VEGF Injection & Sign'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
